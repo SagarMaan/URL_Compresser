@@ -74,3 +74,46 @@ const create = async (req, res) => {
     return res.status(500).send({ status: false, message: error.message });
   }
 };
+
+
+//==============================        Get URL       ================================================//
+
+
+const getUrl = async (req, res) => {
+  try {
+    let param = req.params.urlCode;
+
+    if (!shortId.isValid(param)) {
+      return res
+        .status(400)
+        .send({ status: false, message: "urlcode is not valid" });
+    }
+
+    let createdUrl = await GET_ASYNC(`${param}`);
+
+    let objectConversion = JSON.parse(createdUrl);
+
+    if (createdUrl) {
+      return res.status(302).redirect(objectConversion);
+    } else {
+      let getUrl = await urlModel
+        .findOne({ urlCode: param })
+        .select({ longUrl: 1, _id: 0 });
+
+      if (!getUrl) {
+        return res
+          .status(404)
+          .send({ status: false, message: "no such Url exist" });
+      }
+
+      let longUrl = getUrl.longUrl;
+
+      await SET_ASYNC(`${param}`, 60 * 1440, JSON.stringify(longUrl));
+      res.status(302).redirect(longUrl);
+    }
+  } catch (error) {
+    return res.status(500).send({ status: false, message: error.message });
+  }
+};
+
+module.exports = { create , getUrl }
